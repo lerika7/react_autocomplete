@@ -1,29 +1,36 @@
+import { memo } from 'react';
 import { Person } from '../types/Person';
 
-type Props = {
+interface Props {
   people: Person[];
   onSelected: (person: Person) => void;
-};
+  onFocus: (isFocus: boolean) => void;
+}
 
-export const DropdownMenu: React.FC<Props> = ({ people, onSelected }) => {
-  const handleSelect = (person: Person) => {
-    onSelected(person);
-  };
+export const DropdownMenu: React.FC<Props> = memo(
+  ({ people, onSelected, onFocus }) => {
+    const handleSelect = (person: Person) => {
+      onSelected(person);
+      onFocus(false);
+    };
 
-  return (
-    <div className="dropdown-menu" role="menu" data-cy="suggestions-list">
-      <div className="dropdown-content">
-        {people.map(person => (
-          <div
-            className="dropdown-item"
-            data-cy="suggestion-item"
-            key={person.name}
-            onClick={() => handleSelect(person)}
-          >
-            <p className="has-text-link">{person.name}</p>
-          </div>
-        ))}
+    return (
+      <div className="dropdown-menu" role="menu" data-cy="suggestions-list">
+        <div className="dropdown-content">
+          {people.map(person => (
+            <div
+              key={person.slug}
+              className="dropdown-item is-clickable"
+              data-cy="suggestion-item"
+              onMouseDown={() => handleSelect(person)}
+            >
+              <p className="has-text-link">{person.name}</p>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  },
+);
+
+DropdownMenu.displayName = 'DropdownMenu';

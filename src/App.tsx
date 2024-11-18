@@ -1,38 +1,54 @@
-import React, { ChangeEvent, useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import './App.scss';
 import { peopleFromServer } from './data/people';
 import { DropdownMenu } from './components/DropdownMenu';
+import classNames from 'classnames';
 import { Person } from './types/Person';
 
 export const App: React.FC = () => {
+  const [people] = useState<Person[]>(peopleFromServer);
   const [query, setQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [normalizedQuery, setNormalizedQuery] = useState('');
+  const timerId = useRef(0);
+  const field = useRef<HTMLInputElement>(null);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
-  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setQuery(event.target.value);
-    setSelectedPerson(null);
-  };
+  const saveQuery = (newQuery: string) => {
+    setQuery(newQuery);
 
-  const onSelected = (person: Person) => {
-    setSelectedPerson(person);
+    window.clearTimeout(timerId.current);
+
+    timerId.current = window.setTimeout(() => {
+      setNormalizedQuery(newQuery.trim().toLowerCase());
+
+      if (newQuery !== normalizedQuery) {
+        setSelectedPerson(null);
+      }
+    }, 300);
   };
 
   const filteredPeople = useMemo(() => {
-    return peopleFromServer.filter(person =>
-      person.name.toLowerCase().includes(query.toLowerCase()),
+    return people.filter(person =>
+      person.name.toLowerCase().includes(normalizedQuery),
     );
-  }, [query]);
+  }, [normalizedQuery, people]);
+
+  function onSelected(person: Person) {
+    setSelectedPerson(person);
+    setIsFocused(false);
+  }
 
   return (
     <div className="container">
       <main className="section is-flex is-flex-direction-column">
         <h1 className="title" data-cy="title">
           {selectedPerson
-            ? `${selectedPerson?.name} (${selectedPerson?.born} - ${selectedPerson?.died})`
+            ? `${selectedPerson.name} (${selectedPerson.born} - ${selectedPerson.died})`
             : 'No selected person'}
         </h1>
 
-        <div className="dropdown is-active">
+        <div className={classNames('dropdown', { 'is-active': isFocused })}>
           <div className="dropdown-trigger">
             <input
               type="text"
@@ -40,14 +56,18 @@ export const App: React.FC = () => {
               className="input"
               data-cy="search-input"
               value={query}
-              onChange={handleInputChange}
+              ref={field}
+              onFocus={() => setIsFocused(true)}
+              onChange={event => saveQuery(event.target.value)}
             />
           </div>
 
           {filteredPeople.length > 0 && (
-            <div className="dropdown-content">
-              <DropdownMenu people={filteredPeople} onSelected={onSelected} />
-            </div>
+            <DropdownMenu
+              people={filteredPeople}
+              onSelected={onSelected}
+              onFocus={isFocus => setIsFocused(isFocus)}
+            />
           )}
         </div>
 
